@@ -3,7 +3,7 @@ module ROCKernels
 export ROCBackend
 
 import AMDGPU
-import AMDGPU.Device: @device_override
+import AMDGPU.Device: @device_override, @device_function
 using AMDGPU: GPUArrays, rocSPARSE, HIP, Device, rocconvert, hipfunction
 
 import Adapt
@@ -225,7 +225,8 @@ end
 
 # the 0-based lane of the work-item in its wavefront. unlike `Device.activelane()`, this
 # doesn't depend on which lanes are active. `mbcnt.hi` adds nothing in wave32 mode.
-@inline function hardware_lane()
+# device-only: the intrinsics can't be compiled for the host, e.g. by a sysimage build.
+@device_function @inline function hardware_lane()
     lo = ccall("llvm.amdgcn.mbcnt.lo", llvmcall, UInt32, (UInt32, UInt32), typemax(UInt32), 0x0)
     return ccall("llvm.amdgcn.mbcnt.hi", llvmcall, UInt32, (UInt32, UInt32), typemax(UInt32), lo)
 end
